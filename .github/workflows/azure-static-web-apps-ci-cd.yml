@@ -1,0 +1,153 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Clean install dependencies
+        run: |
+          rm -f package-lock.json
+          npm install
+
+      - name: Clean build directory
+        run: |
+          rm -rf dist
+          mkdir -p dist
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Create staticwebapp config
+        run: |
+          cat > dist/staticwebapp.config.json << 'EOF'
+          {
+            "routes": [
+              {
+                "route": "/api/*",
+                "allowedRoles": ["authenticated"]
+              },
+              {
+                "route": "/*",
+                "serve": "/index.html",
+                "statusCode": 200
+              }
+            ],
+            "responseOverrides": {
+              "404": {
+                "rewrite": "/index.html",
+                "statusCode": 200
+              }
+            },
+            "mimeTypes": {
+              ".json": "application/json"
+            },
+            "globalHeaders": {
+              "Cache-Control": "public, max-age=31536000, immutable"
+            }
+          }
+          EOF
+
+      - name: Optimize dist folder for large project
+        run: |
+          echo "=== PRE-OPTIMIZATION ANALYSIS ==="
+          echo "Total files before optimization: $(find dist -type f | wc -l)"
+          echo "Total size before optimization: $(du -sh dist | cut -f1)"
+          
+          # Verify critical files exist
+          if [ ! -f "dist/index.html" ]; then
+            echo "ERROR: index.html not found in dist!"
+            exit 1
+          fi
+          
+          # Remove unnecessary files to reduce bundle size
+          find dist -name "*.txt" -delete || true
+          find dist -name "*.md" -delete || true
+          find dist -name "*.LICENSE" -delete || true
+          
+          # Optimize logo files - keep only essential ones to reduce size
+          if [ -d "dist/assets" ]; then
+            # Count logo files
+            logo_count=$(find dist/assets -name "*logo*" -type f | wc -l)
+            echo "Found $logo_count logo files"
+            
+            # Keep only first 8 most essential logo files to prevent size bloat
+            if [ $logo_count -gt 8 ]; then
+              echo "Reducing logo files from $logo_count to 8"
+              find dist/assets -name "*logo*" -type f | head -8 | while read file; do echo "Keeping essential: $file"; done
+              find dist/assets -name "*logo*" -type f | tail -n +9 -delete || true
+            fi
+          fi
+          
+          # Remove source maps in production to reduce size significantly
+          find dist -name "*.map" -delete || true
+          echo "Removed source maps to reduce bundle size"
+          
+          # Compress remaining assets if gzip is available
+          if command -v gzip >/dev/null 2>&1; then
+            find dist -type f \( -name "*.js" -o -name "*.css" -o -name "*.html" \) -exec gzip -9 -k {} \;
+            echo "Pre-compressed assets with gzip for better performance"
+          fi
+          
+          echo "=== POST-OPTIMIZATION ANALYSIS ==="
+          echo "Total files after optimization: $(find dist -type f | wc -l)"
+          echo "Total size after optimization: $(du -sh dist | cut -f1)"
+          
+          echo "=== DEPLOYMENT VERIFICATION ==="
+          echo "Critical files check:"
+          echo "- index.html: $(ls -la dist/index.html 2>/dev/null || echo 'MISSING!')"
+          echo "- staticwebapp.config.json: $(ls -la dist/staticwebapp.config.json 2>/dev/null || echo 'MISSING!')"
+          echo "- JS files: $(find dist -name '*.js' | wc -l)"
+          echo "- CSS files: $(find dist -name '*.css' | wc -l)"
+          echo "- Asset files: $(find dist/assets -type f 2>/dev/null | wc -l || echo '0')"
+          
+          echo "=== FINAL DIRECTORY STRUCTURE ==="
+          find dist -type f | sort
+
+      - name: Build And Deploy
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_CALM_SKY_0E8D4201E }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "dist"
+          api_location: ""
+          output_location: "."
+          skip_app_build: true
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_CALM_SKY_0E8D4201E }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "close"
