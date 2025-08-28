@@ -1,0 +1,185 @@
+/* Grid Pattern Styles for Report Builder Canvas */
+.bg-grid-pattern {
+  background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Dark mode grid */
+.dark .bg-grid-pattern {
+  background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
+}
+
+/* Grid lines for alignment */
+.grid-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.1;
+}
+
+.grid-lines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Component drag overlay styles */
+.component-drag-overlay {
+  opacity: 0.8;
+  transform: rotate(2deg) scale(1.05);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+  border: 2px dashed hsl(var(--primary));
+}
+
+/* Selection ring */
+.component-selected {
+  position: relative;
+}
+
+.component-selected::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid hsl(var(--primary));
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* Resize handles */
+.resize-handle {
+  position: absolute;
+  background: hsl(var(--primary));
+  border: 2px solid hsl(var(--background));
+  border-radius: 50%;
+  cursor: nw-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.resize-handle-nw { top: -4px; left: -4px; cursor: nw-resize; }
+.resize-handle-ne { top: -4px; right: -4px; cursor: ne-resize; }
+.resize-handle-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+.resize-handle-se { bottom: -4px; right: -4px; cursor: se-resize; }
+
+.component-selected .resize-handle,
+.component-hover .resize-handle {
+  opacity: 1;
+}
+
+/* Snap guides */
+.snap-guide {
+  position: absolute;
+  background: hsl(var(--primary));
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.snap-guide-vertical {
+  width: 1px;
+  height: 100%;
+  top: 0;
+}
+
+.snap-guide-horizontal {
+  height: 1px;
+  width: 100%;
+  left: 0;
+}
+
+/* Animation for component insertion */
+@keyframes component-insert {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.component-insert {
+  animation: component-insert 0.3s ease-out;
+}
+
+/* Floating toolbar styles */
+.floating-toolbar {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 2px;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.component-selected .floating-toolbar,
+.component-hover .floating-toolbar {
+  opacity: 1;
+}
+
+/* Canvas zoom styles */
+.canvas-zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Layout templates preview */
+.layout-template {
+  position: relative;
+  aspect-ratio: 16/9;
+  border: 2px dashed hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--muted)/30);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.layout-template:hover {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--muted)/50);
+}
+
+.layout-template-preview {
+  position: absolute;
+  inset: 8px;
+  display: grid;
+  gap: 4px;
+  opacity: 0.6;
+}
+
+.layout-template-item {
+  background: hsl(var(--primary)/30);
+  border-radius: 2px;
+}
